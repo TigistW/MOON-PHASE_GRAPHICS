@@ -1,153 +1,178 @@
 import glfw
-import os
 from OpenGL.GL import *
-from OpenGL.GL.shaders import compileProgram, compileShader
+from OpenGL.GL.shaders import *
 import pyrr
+import os
+from objloader3 import model_object_loader
 from OpenGL.GL import shaders
-from TextureLoader import load_texture
-from camera import Camera
-from objloader3 import ObjLoader
+from View import View
+from OpenGL.GL import *
 from PIL import Image
 
-class Moon:
-    def __init__(self) -> None:
-        global lastX, lastY
-        global first_mouse
-        self.cam = Camera()
-        WIDTH, HEIGHT = 900, 550
-        lastX, lastY = WIDTH / 2, HEIGHT / 2
-        first_mouse = True
+viewCam = View()
+width, height = 1150, 680
+default_X, default_Y = width / 2, height / 2
+left_mov, right_mov, front_mov, back_mov, mouse = False, False, False, False,True
 
-        if not glfw.init():
-            raise Exception("glfw can not be initialized!")
-        window = glfw.create_window(WIDTH, HEIGHT, "My OpenGL window", None, None)
-        if not window:
-            glfw.terminate()
-            raise Exception("glfw window can not be created!")
-        glfw.set_window_pos(window, 100, 100)
-        glfw.set_window_size_callback(window, self.window)
-        glfw.set_cursor_pos_callback(window, self.mouse_look)
-        glfw.set_cursor_enter_callback(window, self.mouse_enter)
-        glfw.make_context_current(window)
+def get_texture(path, texture):
+    glBindTexture(GL_TEXTURE_2D, texture)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
 
-        # importing indices and buffers
-        # could return the indices and the buffers in a different function
-        moon_indices, moon_buffer = ObjLoader.load_model("MoonBlender/blendermonn.obj")
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-        self.vertexContent = self.getFileContents("vertex.shader")
-        self.fragmentContent = self.getFileContents("fragment.shader")
-        self.vertexShader = shaders.compileShader(self.vertexContent, GL_VERTEX_SHADER)
-        self.fragmentShader = shaders.compileShader(self.fragmentContent, GL_FRAGMENT_SHADER)
+    tex_image = Image.open(path)
+    tex_image = tex_image.transpose(Image.FLIP_TOP_BOTTOM)
+    img_data = tex_image.convert("RGBA").tobytes()
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_image.width,
+                 tex_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
+    return texture
 
-        self.program = glCreateProgram()
-        glAttachShader(self.program, self.vertexShader)
-        glAttachShader(self.program, self.fragmentShader)
-        glLinkProgram(self.program)
+def keyboard_motion(window, keyboard_key, scancode, action, mode):
+    global left_mov, right_mov, front_mov, back_mov
+    if keyboard_key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+        glfw.set_window_should_close(window, True)
 
-        # VAO and VBO declarations
-        self.MoonVao = glGenVertexArrays(1)
-        self.MoonVbo = glGenBuffers(1)
+    if keyboard_key == glfw.KEY_W and action == glfw.PRESS:
+        front_mov = True
+    elif keyboard_key == glfw.KEY_W and action == glfw.RELEASE:
+        front_mov = False
+    if keyboard_key == glfw.KEY_S and action == glfw.PRESS:
+        back_mov = True
+    elif keyboard_key == glfw.KEY_S and action == glfw.RELEASE:
+        back_mov = False
+    if keyboard_key == glfw.KEY_A and action == glfw.PRESS:
+        left_mov = True
+    elif keyboard_key == glfw.KEY_A and action == glfw.RELEASE:
+        left_mov = False
+    if keyboard_key == glfw.KEY_D and action == glfw.PRESS:
+        right_mov = True
+    elif keyboard_key == glfw.KEY_D and action == glfw.RELEASE:
+        right_mov = False
 
-        # Moon VAO binding
-        glBindVertexArray(self.MoonVao)
-        # Chibi Vertex Buffer Object
-        glBindBuffer(GL_ARRAY_BUFFER, self.MoonVbo)
-        glBufferData(GL_ARRAY_BUFFER, moon_buffer.nbytes, moon_buffer, GL_STATIC_DRAW)
+def keyboard_action_movement():
+    if left_mov:
+        viewCam.keyboard_director("LEFT", 0.05)
+    if right_mov:
+        viewCam.keyboard_director("RIGHT", 0.05)
+    if front_mov:
+        viewCam.keyboard_director("FORWARD", 0.05)
+    if back_mov:
+        viewCam.keyboard_director("BACKWARD", 0.05)
 
-        # chibi vertices
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, moon_buffer.itemsize * 8, ctypes.c_void_p(0))
+def mouse_motion(window, x_position, y_position):
+    global mouse, default_X, default_Y
+    if mouse:
+        default_X = x_position
+        default_Y = y_position
+        mouse = False
 
-        # chibi textures
-        glEnableVertexAttribArray(1)
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, moon_buffer.itemsize * 8, ctypes.c_void_p(12))
-        
-        # chibi normals
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, moon_buffer.itemsize * 8, ctypes.c_void_p(20))
-        glEnableVertexAttribArray(2)
+    x_distance = x_position - default_X
+    y_distance = default_Y - y_position
 
-        textures = glGenTextures(1)
-        load_texture("MoonBlender/MoonTex.jpg", textures)
+    default_X = x_position
+    default_Y = y_position
 
-        glUseProgram(self.program)
-        glClearColor(0, 0.1, 0.1, 1)
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    viewCam.calculating_new_location(x_distance, y_distance)
 
-        projection = pyrr.matrix44.create_perspective_projection_matrix(45, 1280 / 720, 0.1, 100)
-        self.moon_pos = pyrr.matrix44.create_from_translation(pyrr.Vector3([0, -5, 0]))
+def changing_display(display, width, height):
+    glViewport(0, 0, width, height)
+    projection = pyrr.matrix44.create_perspective_projection_matrix(
+        45, width / height, 0.1, 100)
+    glUniformMatrix4fv(projection_view_location, 1, GL_FALSE, projection)
 
-        projection = pyrr.matrix44.create_perspective_projection_matrix(
-            45, 1280 / 720, 0.1, 100)
 
-        self.moon_pos = pyrr.matrix44.create_from_translation(pyrr.Vector3([0, 0, 0]))
-        # eye, target, up
-        view = pyrr.matrix44.create_look_at(pyrr.Vector3(
-            [0, 0, 8]), pyrr.Vector3([0, 0, 0]), pyrr.Vector3([0, 1, 0]))
+def getFileContents(filename):
+    p = os.path.join(os.getcwd(), "shader", filename)
+    return open(p, 'r').read()
 
-        self.model_loc = glGetUniformLocation(self.program, "model")
-        self.proj_loc = glGetUniformLocation(self.program, "projection")
-        self.view_loc = glGetUniformLocation(self.program, "view")
+def render():
+    view = viewCam.current_location_view()
+    glUniformMatrix4fv(view_display_location, 1, GL_FALSE, view)
 
-        glUniformMatrix4fv(self.proj_loc, 1, GL_FALSE, projection)
-        glUniformMatrix4fv(self.view_loc, 1, GL_FALSE, view)
+    rot_y = pyrr.Matrix44.from_y_rotation(0.8 * glfw.get_time())
+    model = pyrr.matrix44.multiply(rot_y, default_moon_position)
 
-        while not glfw.window_should_close(window):
-            glfw.poll_events()
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glBindVertexArray(MoonVao)
+    glBindTexture(GL_TEXTURE_2D, textures)
 
-            rot_y = pyrr.Matrix44.from_y_rotation(0.8 * glfw.get_time())
-            model = pyrr.matrix44.multiply(rot_y, self.moon_pos)
+    glUniformMatrix4fv(moon_model_location, 1, GL_FALSE, model)
 
-            # draw the moon
-            glBindVertexArray(self.MoonVao)
-            glBindTexture(GL_TEXTURE_2D, textures)
-            glUniformMatrix4fv(self.model_loc, 1, GL_FALSE, model)
-            glDrawArrays(GL_TRIANGLES, 0, len(moon_indices))
-            # glDrawElements(GL_TRIANGLES, len(chibi_indices), GL_UNSIGNED_INT, None)
-            glfw.swap_buffers(window)
+    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, rot_y)
+    glUniformMatrix4fv(light_loc, 1, GL_FALSE, rot_y)
+    glDrawArrays(GL_TRIANGLES, 0, len(moon_indices))
 
-        glfw.terminate()
+if not glfw.init():
+    raise Exception("initialization of glfw failed!")
+display = glfw.create_window(width, height, "Moon phases", None, None)
 
-    def window(self,window, width, height):
-        glViewport(0, 0, width, height)
-        projection = pyrr.matrix44.create_perspective_projection_matrix(45, width / height, 0.1, 100)
-        glUniformMatrix4fv(self.proj_loc, 1, GL_FALSE, projection)
+glfw.set_window_pos(display, 50, 50)
+glfw.set_window_size_callback(display, changing_display)
+glfw.set_cursor_pos_callback(display, mouse_motion)
+glfw.set_key_callback(display, keyboard_motion)
+glfw.set_input_mode(display, glfw.CURSOR, glfw.CURSOR_DISABLED)
+glfw.make_context_current(display)
 
-    def getFileContents(self,filename):
-        p = os.path.join(os.getcwd(), "Shaders", filename)
-        return open(p, 'r').read()
+moon_indices, moon_buffer = model_object_loader.get_model("MoonBlender/MoonObj.obj")
 
-    def mouse_look(self, window, xpos, ypos):
-        if self.first_mouse:
-            lastX = xpos
-            lastY = ypos
-        xoffset = xpos - lastX
-        yoffset = lastY - ypos
-        lastX = xpos
-        lastY = ypos
-        self.cam.process_mouse_movement(xoffset, yoffset)
+vertexContent = getFileContents("vertex.vs")
+fragmentContent = getFileContents("fragment.fs")
+vertexShader = shaders.compileShader(vertexContent, GL_VERTEX_SHADER)
+fragmentShader = shaders.compileShader(fragmentContent, GL_FRAGMENT_SHADER)
 
-    # the mouse enter callback function
-    def mouse_enter(self, window, entered):
-        
-        if entered:
-            self.first_mouse = False
-        else:
-            self.first_mouse = True
+program = glCreateProgram()
+glAttachShader(program, vertexShader)
+glAttachShader(program, fragmentShader)
+glLinkProgram(program)
 
-    def Texture(self,directory,texture):
-        glBindTexture(GL_TEXTURE_2D, texture)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+MoonVao = glGenVertexArrays(1)
+MoonVbo = glGenBuffers(1)
 
-        image = Image.open(directory)
-        image = image.transpose(Image.FLIP_TOP_BOTTOM)
-        img_data = image.convert("RGBA").tobytes()
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width,
-                    image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
-        return texture
-moon = Moon()
+glBindVertexArray(MoonVao)
+
+glBindBuffer(GL_ARRAY_BUFFER, MoonVbo)
+glBufferData(GL_ARRAY_BUFFER, moon_buffer.nbytes, moon_buffer, GL_STATIC_DRAW)
+
+glEnableVertexAttribArray(0)
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                      moon_buffer.itemsize * 8, ctypes.c_void_p(0))
+
+glEnableVertexAttribArray(1)
+glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+                      moon_buffer.itemsize * 8, ctypes.c_void_p(12))
+
+glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+                      moon_buffer.itemsize * 8, ctypes.c_void_p(20))
+glEnableVertexAttribArray(2)
+
+textures = glGenTextures(1)
+get_texture("MoonBlender/moon_texture.jpg", textures)
+
+glUseProgram(program)
+glClearColor(0, 0.1, 0.1, 1)
+glEnable(GL_DEPTH_TEST)
+glEnable(GL_BLEND)
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+projection = pyrr.matrix44.create_perspective_projection_matrix(
+    45, 1280 / 720, 0.1, 100)
+default_moon_position = pyrr.matrix44.create_from_translation(
+    pyrr.Vector3([0, 4, 0]))
+
+moon_model_location = glGetUniformLocation(program, "moon_model")
+projection_view_location = glGetUniformLocation(program, "projection_view")
+view_display_location = glGetUniformLocation(program, "view_display")
+transform_loc = glGetUniformLocation(program, "transform")
+light_loc = glGetUniformLocation(program, "light")
+glUniformMatrix4fv(projection_view_location, 1, GL_FALSE, projection)
+
+while not glfw.window_should_close(display):
+    glfw.poll_events()
+    keyboard_action_movement()
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glClearColor(0.0, 0.0, 0.0, 0.0)
+    render()
+    glfw.swap_buffers(display)
+
+glfw.terminate()
