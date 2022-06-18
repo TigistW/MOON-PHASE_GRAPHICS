@@ -47,3 +47,5 @@ class View:
             self.view_loc -= self.right_view * speed
         if dxn == "RIGHT":
             self.view_loc += self.right_view * speed
+
+            
