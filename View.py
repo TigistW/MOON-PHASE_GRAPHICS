@@ -1,10 +1,8 @@
 from pyrr import *
 from math import *
-
-
 class View:
-    def init(self):
-        self.view_loc = Vector3([0.0, 4.0, 3.0])
+    def __init__(self):
+        self.view_loc = Vector3([0.0,4.0, 3.0])
         self.front_view = Vector3([0.0, 0.0, -1.0])
         self.top_view = Vector3([0.0, 1.0, 0.0])
         self.right_view = Vector3([1.0, 0.0, 0.0])
@@ -37,10 +35,8 @@ class View:
         front.z = sin(radians(self.val)) * cos(radians(self.values))
 
         self.front_view = vector.normalise(front)
-        self.right_view = vector.normalise(vector3.cross(
-            self.front_view, Vector3([0.0, 1.0, 0.0])))
-        self.top_view = vector.normalise(
-            vector3.cross(self.right_view, self.front_view))
+        self.right_view = vector.normalise(vector3.cross(self.front_view, Vector3([0.0, 1.0, 0.0])))
+        self.top_view = vector.normalise(vector3.cross(self.right_view, self.front_view))
 
     def keyboard_director(self, dxn, speed):
         if dxn == "FORWARD":

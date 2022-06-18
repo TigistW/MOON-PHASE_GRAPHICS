@@ -25,8 +25,7 @@ def get_texture(path, texture):
     tex_image = Image.open(path)
     tex_image = tex_image.transpose(Image.FLIP_TOP_BOTTOM)
     img_data = tex_image.convert("RGBA").tobytes()
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_image.width,
-                 tex_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_image.width,tex_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
     return texture
 
 def keyboard_motion(window, keyboard_key, scancode, action, mode):
