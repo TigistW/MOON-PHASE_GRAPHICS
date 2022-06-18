@@ -1,13 +1,13 @@
-from pyrr import Vector3, vector, vector3, matrix44
-from math import sin, cos, radians
+from pyrr import *
+from math import *
+
 
 class View:
-    def __init__(self):
-        self.view_loc = Vector3([0.0,4.0, 3.0])
+    def init(self):
+        self.view_loc = Vector3([0.0, 4.0, 3.0])
         self.front_view = Vector3([0.0, 0.0, -1.0])
         self.top_view = Vector3([0.0, 1.0, 0.0])
         self.right_view = Vector3([1.0, 0.0, 0.0])
-
         self.mouse_sensitivity = 0.3
         self.val = -90
         self.values = 0
@@ -37,15 +37,17 @@ class View:
         front.z = sin(radians(self.val)) * cos(radians(self.values))
 
         self.front_view = vector.normalise(front)
-        self.right_view = vector.normalise(vector3.cross(self.front_view, Vector3([0.0, 1.0, 0.0])))
-        self.top_view = vector.normalise(vector3.cross(self.right_view, self.front_view))
+        self.right_view = vector.normalise(vector3.cross(
+            self.front_view, Vector3([0.0, 1.0, 0.0])))
+        self.top_view = vector.normalise(
+            vector3.cross(self.right_view, self.front_view))
 
-    def keyboard_director(self, direction, velocity):
-        if direction == "FORWARD":
-            self.view_loc += self.front_view * velocity
-        if direction == "BACKWARD":
-            self.view_loc -= self.front_view * velocity
-        if direction == "LEFT":
-            self.view_loc -= self.right_view * velocity
-        if direction == "RIGHT":
-            self.view_loc += self.right_view * velocity
+    def keyboard_director(self, dxn, speed):
+        if dxn == "FORWARD":
+            self.view_loc += self.front_view * speed
+        if dxn == "BACKWARD":
+            self.view_loc -= self.front_view * speed
+        if dxn == "LEFT":
+            self.view_loc -= self.right_view * speed
+        if dxn == "RIGHT":
+            self.view_loc += self.right_view * speed
