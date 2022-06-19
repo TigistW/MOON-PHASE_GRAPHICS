@@ -28,7 +28,7 @@ def get_texture(path, texture):
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_image.width,tex_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
     return texture
 
-def keyboard_motion(window, keyboard_key, scancode, action, mode):
+def keyboard_motion(window, keyboard_key,scancode,action,mode):
     global left_mov, right_mov, front_mov, back_mov
     if keyboard_key == glfw.KEY_ESCAPE and action == glfw.PRESS:
         glfw.set_window_should_close(window, True)
@@ -52,13 +52,13 @@ def keyboard_motion(window, keyboard_key, scancode, action, mode):
 
 def keyboard_action_movement():
     if left_mov:
-        viewCam.keyboard_director("LEFT", 0.05)
+        viewCam.keyboard_director("LEFT", 0.04)
     if right_mov:
-        viewCam.keyboard_director("RIGHT", 0.05)
+        viewCam.keyboard_director("RIGHT", 0.04)
     if front_mov:
-        viewCam.keyboard_director("FORWARD", 0.05)
+        viewCam.keyboard_director("FORWARD", 0.04)
     if back_mov:
-        viewCam.keyboard_director("BACKWARD", 0.05)
+        viewCam.keyboard_director("BACKWARD", 0.04)
 
 def mouse_motion(window, x_position, y_position):
     global mouse, default_X, default_Y
@@ -72,7 +72,6 @@ def mouse_motion(window, x_position, y_position):
 
     default_X = x_position
     default_Y = y_position
-
     viewCam.calculating_new_location(x_distance, y_distance)
 
 def changing_display(display, width, height):
@@ -90,7 +89,7 @@ def render():
     view = viewCam.current_location_view()
     glUniformMatrix4fv(view_display_location, 1, GL_FALSE, view)
 
-    rot_y = pyrr.Matrix44.from_y_rotation(0.8 * glfw.get_time())
+    rot_y = pyrr.Matrix44.from_y_rotation(0.6 * glfw.get_time())
     model = pyrr.matrix44.multiply(rot_y, default_moon_position)
 
     glBindVertexArray(MoonVao)

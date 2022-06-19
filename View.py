@@ -13,19 +13,12 @@ class View:
     def current_location_view(self):
         return matrix44.create_look_at(self.view_loc, self.view_loc + self.front_view, self.top_view)
 
-    def calculating_new_location(self, xoffset, yoffset, constrain_pitch=True):
+    def calculating_new_location(self, xoffset, yoffset):
         xoffset *= self.mouse_sensitivity
         yoffset *= self.mouse_sensitivity
 
         self.val += xoffset
         self.values += yoffset
-
-        if constrain_pitch:
-            if self.values > 45:
-                self.values = 45
-            if self.values < -45:
-                self.values = -45
-
         self.update_view_position()
 
     def update_view_position(self):

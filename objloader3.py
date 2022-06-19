@@ -1,22 +1,21 @@
-from re import I
 import numpy as np
 class model_object_loader:
     buffer = []
-    @staticmethod
-    def vertice_allocation(indices_data, vertices, textures, normals):
-        for i, ind in enumerate(indices_data):
-            if i % 3 == 0: 
-                start = ind * 3
-                end = start + 3
-                model_object_loader.buffer.extend(vertices[start:end])
-            elif i % 3 == 1: 
-                start = ind * 2
-                end = start + 2
-                model_object_loader.buffer.extend(textures[start:end])
-            elif i % 3 == 2: 
-                start = ind * 3
-                end = start + 3
-                model_object_loader.buffer.extend(normals[start:end])
+    # @staticmethod
+    # def vertice_allocation(indices_data, vertices, textures, normals):
+    #     for i, ind in enumerate(indices_data):
+    #         if i % 3 == 0: 
+    #             start = ind * 3
+    #             end = start + 3
+    #             model_object_loader.buffer.extend(vertices[start:end])
+    #         elif i % 3 == 1: 
+    #             start = ind * 2
+    #             end = start + 2
+    #             model_object_loader.buffer.extend(textures[start:end])
+    #         elif i % 3 == 2: 
+    #             start = ind * 3
+    #             end = start + 3
+    #             model_object_loader.buffer.extend(normals[start:end])
 
     @staticmethod
     def get_model(file):
